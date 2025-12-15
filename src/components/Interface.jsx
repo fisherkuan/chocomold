@@ -76,7 +76,7 @@ const Interface = ({ onUpload, depth, setDepth, scale, setScale, invert, setInve
 
             <div className="ui-header">
                 <h1>ChocoMold</h1>
-                <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem' }}>Base Dimensions: 10 × 10</p>
+                <p style={{ margin: 0, opacity: 0.7, fontSize: '0.9rem' }}>Base Dimensions: 10 × 10 × 1.2</p>
             </div>
 
             <div className="ui-controls">

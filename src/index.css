@@ -114,6 +114,39 @@ button:active {
   transform: translateY(0);
 }
 
+.primary-button {
+  background-color: var(--chocolate-dark);
+  color: white;
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  background: transparent;
+  border: 1px solid var(--chocolate-dark);
+  color: var(--chocolate-dark);
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-button:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
 .file-input-wrapper {
   position: relative;
   overflow: hidden;
@@ -148,4 +181,201 @@ button:active {
   width: 100%;
   height: 100%;
   cursor: pointer;
+}
+
+.cropper-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.cropper-panel {
+  background: white;
+  color: var(--chocolate-dark);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  width: min(900px, 95vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+}
+
+.cropper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cropper-header h2 {
+  margin: 0;
+}
+
+.cropper-filename {
+  margin: 0;
+  opacity: 0.6;
+  font-size: 0.85rem;
+}
+
+.cropper-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.cropper-image-wrapper {
+  position: relative;
+  width: min(80vw, 55vh, 640px);
+  height: min(80vw, 55vh, 640px);
+  max-width: 640px;
+  max-height: 55vh;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: #f8f6f3;
+  touch-action: none;
+}
+
+.cropper-image-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.cropper-image-wrapper img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.cropper-image-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.cropper-image-canvas {
+  width: 100%;
+  height: 100%;
+  transform-origin: top left;
+  position: relative;
+  cursor: default;
+}
+
+.cropper-image-canvas.is-zoomed {
+  cursor: grab;
+}
+
+.cropper-image-canvas.is-zoomed.is-panning {
+  cursor: grabbing;
+}
+
+.cropper-overlay {
+  position: absolute;
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+  border-radius: 0.35rem;
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+.cropper-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid white;
+  background: var(--accent-color);
+  bottom: -10px;
+  right: -10px;
+  cursor: nwse-resize;
+}
+
+.cropper-zoom-controls {
+  background: rgba(0, 0, 0, 0.03);
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cropper-zoom-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.cropper-zoom-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cropper-zoom-slider input[type=range] {
+  flex: 1;
+}
+
+.cropper-zoom-hint {
+  margin: 0;
+  opacity: 0.6;
+  font-size: 0.8rem;
+}
+
+.cropper-controls {
+  background: rgba(0, 0, 0, 0.03);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cropper-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.65;
+}
+
+.cropper-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 900px) {
+  .cropper-body {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .cropper-image-column {
+    max-width: 640px;
+  }
+
+  .cropper-controls {
+    width: 220px;
+  }
 }

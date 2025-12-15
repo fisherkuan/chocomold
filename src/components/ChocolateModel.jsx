@@ -5,6 +5,7 @@ import { SUBTRACTION, Brush, Evaluator } from 'three-bvh-csg';
 const BASE_SIZE = 10;
 const BASE_HEIGHT = 1.2;
 const OVERCUT = 0.05;
+const LARGE_MASK_THRESHOLD = 0.85;
 
 // Helper to transform shapes in 2D to avoid 3D operations where possible
 const transformShapes = (shapes, targetScale = 1) => {
@@ -57,6 +58,52 @@ const transformShapes = (shapes, targetScale = 1) => {
     return { transformed, fitScale };
 };
 
+const getShapeBounds = (shape) => {
+    const points = shape.getPoints();
+    if (!points?.length) return null;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    points.forEach((point) => {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+    });
+    if (!Number.isFinite(minX) || !Number.isFinite(maxX) || !Number.isFinite(minY) || !Number.isFinite(maxY)) {
+        return null;
+    }
+    return { minX, minY, maxX, maxY };
+};
+
+const combineBounds = (boundsList) => {
+    return boundsList.reduce((acc, bounds) => {
+        if (!bounds) return acc;
+        return {
+            minX: Math.min(acc.minX, bounds.minX),
+            minY: Math.min(acc.minY, bounds.minY),
+            maxX: Math.max(acc.maxX, bounds.maxX),
+            maxY: Math.max(acc.maxY, bounds.maxY),
+        };
+    }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+};
+
+const getBoundsFromShapes = (shapes) => {
+    if (!shapes?.length) return null;
+    const bounds = combineBounds(shapes.map(getShapeBounds).filter(Boolean));
+    if (bounds.minX === Infinity) return null;
+    return bounds;
+};
+
+const boundsArea = (bounds) => {
+    if (!bounds) return 0;
+    const width = bounds.maxX - bounds.minX;
+    const height = bounds.maxY - bounds.minY;
+    if (width <= 0 || height <= 0) return 0;
+    return width * height;
+};
+
 const buildChocolateGeometry = (patternShapes, depth, invert, userScale) => {
     const topSize = BASE_SIZE;
     const bottomSize = BASE_SIZE * 1.05;
@@ -88,6 +135,18 @@ const buildChocolateGeometry = (patternShapes, depth, invert, userScale) => {
     const splitIndex = engraveShapes.length;
     const transformedEngrave = transformedAll.slice(0, splitIndex);
     const transformedMask = transformedAll.slice(splitIndex);
+
+    const engraveBounds = getBoundsFromShapes(transformedEngrave);
+    const maskBounds = getBoundsFromShapes(transformedMask);
+    const maskArea = boundsArea(maskBounds);
+    const engraveArea = boundsArea(engraveBounds);
+    const maskCoverage = maskArea && engraveArea ? maskArea / Math.max(engraveArea, 1e-6) : 0;
+
+    let activeMaskShapes = transformedMask;
+    if (maskCoverage >= LARGE_MASK_THRESHOLD) {
+        console.warn(`Mask skipped because it covers ${(maskCoverage * 100).toFixed(1)}% of the design. Skipping it to avoid geometry stalls.`);
+        activeMaskShapes = [];
+    }
 
     const extrudeDepth = Math.max(Math.min(depth, BASE_HEIGHT - 0.1), 0.05) + OVERCUT;
 
@@ -142,7 +201,7 @@ const buildChocolateGeometry = (patternShapes, depth, invert, userScale) => {
 
             // 4. Extrude the "Plate with Holes" AND the "Masks" AND "Internal Holes"
             // We can extrude them all in one go as a single geometry
-            const toolShapes = [plateShape, ...transformedMask, ...internalHoles];
+            const toolShapes = [plateShape, ...activeMaskShapes, ...internalHoles];
 
             const toolGeometry = new ExtrudeGeometry(toolShapes, { depth: extrudeDepth, bevelEnabled: false });
             toolGeometry.rotateX(Math.PI / 2);
@@ -163,8 +222,8 @@ const buildChocolateGeometry = (patternShapes, depth, invert, userScale) => {
             toolBrush = new Brush(engraveGeometry);
             toolBrush.updateMatrixWorld();
 
-            if (transformedMask.length > 0) {
-                const maskGeometry = new ExtrudeGeometry(transformedMask, { depth: extrudeDepth, bevelEnabled: false });
+            if (activeMaskShapes.length > 0) {
+                const maskGeometry = new ExtrudeGeometry(activeMaskShapes, { depth: extrudeDepth, bevelEnabled: false });
                 maskGeometry.rotateX(Math.PI / 2);
                 maskGeometry.translate(0, BASE_HEIGHT / 2 + 0.01, 0);
 
