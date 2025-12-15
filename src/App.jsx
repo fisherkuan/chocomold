@@ -8,6 +8,8 @@ import { STLExporter } from 'three-stdlib'
 function App() {
   const [patternShapes, setPatternShapes] = useState(null)
   const [depth, setDepth] = useState(0.5)
+  const [scale, setScale] = useState(1)
+  const [invert, setInvert] = useState(false)
   const modelRef = useRef()
 
   const handleSVGUpload = async (file) => {
@@ -33,8 +35,16 @@ function App() {
 
   const handleExport = () => {
     if (modelRef.current) {
+      // Temporarily rotate for export to ensure pattern side is UP
+      modelRef.current.rotation.x += Math.PI;
+      modelRef.current.updateMatrixWorld();
+
       const exporter = new STLExporter();
       const stlString = exporter.parse(modelRef.current);
+
+      // Rotate back
+      modelRef.current.rotation.x -= Math.PI;
+      modelRef.current.updateMatrixWorld();
 
       const blob = new Blob([stlString], { type: 'text/plain' });
       const link = document.createElement('a');
@@ -49,12 +59,18 @@ function App() {
       <ChocolateScene
         patternShapes={patternShapes}
         depth={depth}
+        scale={scale}
+        invert={invert}
         modelRef={modelRef}
       />
       <Interface
         onUpload={handleSVGUpload}
         depth={depth}
         setDepth={setDepth}
+        scale={scale}
+        setScale={setScale}
+        invert={invert}
+        setInvert={setInvert}
         onExport={handleExport}
       />
     </>

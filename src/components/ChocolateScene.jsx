@@ -2,11 +2,11 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import ChocolateModel from './ChocolateModel';
 
-const ChocolateScene = ({ patternShapes, depth, modelRef }) => {
+const ChocolateScene = ({ patternShapes, depth, invert, modelRef, scale }) => {
     return (
         <Canvas
             shadows
-            camera={{ position: [12, 12, 12], fov: 45 }}
+            camera={{ position: [16, 16, 16], fov: 45 }}
             style={{ background: '#fce4ec' }}
         >
             <ambientLight intensity={0.4} />
@@ -35,7 +35,7 @@ const ChocolateScene = ({ patternShapes, depth, modelRef }) => {
                 minPolarAngle={0.05}
             />
 
-            <ChocolateModel ref={modelRef} patternShapes={patternShapes} depth={depth} />
+            <ChocolateModel ref={modelRef} patternShapes={patternShapes} depth={depth} scale={scale} invert={invert} />
         </Canvas>
     );
 };
