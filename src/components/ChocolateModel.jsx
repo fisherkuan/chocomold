@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useMemo } from 'react';
-import { BoxGeometry, ExtrudeGeometry, Vector3 } from 'three';
+import { CylinderGeometry, ExtrudeGeometry, Vector3 } from 'three';
 import { SUBTRACTION, Brush, Evaluator } from 'three-bvh-csg';
 
 const BASE_SIZE = 10;
@@ -37,7 +37,16 @@ const applyTransform = (geometry, center, scale) => {
 };
 
 const buildChocolateGeometry = (patternShapes, depth) => {
-    const baseGeometry = new BoxGeometry(BASE_SIZE, BASE_HEIGHT, BASE_SIZE);
+    // Trapezoid base: Cylinder with 4 segments, rotated to look like a square pyramid frustum
+    // Size is distance from center to corner (radius). For side length L, radius is L / sqrt(2).
+    const topSize = BASE_SIZE;
+    const bottomSize = BASE_SIZE * 1.05; // Slightly larger bottom
+    const radiusTop = topSize / Math.sqrt(2);
+    const radiusBottom = bottomSize / Math.sqrt(2);
+
+    // CylinderGeometry(radiusTop, radiusBottom, height, radialSegments)
+    const baseGeometry = new CylinderGeometry(radiusTop, radiusBottom, BASE_HEIGHT, 4);
+    baseGeometry.rotateY(Math.PI / 4); // Align sides with axes
     const engraveShapes = patternShapes?.engraveShapes ?? [];
     const maskShapes = patternShapes?.maskShapes ?? [];
 
@@ -53,41 +62,63 @@ const buildChocolateGeometry = (patternShapes, depth) => {
     const targetDepth = Math.max(Math.min(depth, BASE_HEIGHT - 0.1), 0.05);
     const extrudeDepth = targetDepth + OVERCUT;
 
-    const engraveGeometry = createExtrudeGeometry(engraveShapes, extrudeDepth);
-    applyTransform(engraveGeometry, center, scale);
-    let engraveBrush = new Brush(engraveGeometry);
-    engraveBrush.updateMatrixWorld();
+    try {
+        const engraveGeometry = createExtrudeGeometry(engraveShapes, extrudeDepth);
+        applyTransform(engraveGeometry, center, scale);
+        let engraveBrush = new Brush(engraveGeometry);
+        engraveBrush.updateMatrixWorld();
 
-    const evaluator = new Evaluator();
+        const evaluator = new Evaluator();
 
-    if (maskShapes.length > 0) {
-        const maskGeometry = createExtrudeGeometry(maskShapes, extrudeDepth);
-        applyTransform(maskGeometry, center, scale);
-        const maskBrush = new Brush(maskGeometry);
-        maskBrush.updateMatrixWorld();
+        if (maskShapes.length > 0) {
+            const maskGeometry = createExtrudeGeometry(maskShapes, extrudeDepth);
+            applyTransform(maskGeometry, center, scale);
+            const maskBrush = new Brush(maskGeometry);
+            maskBrush.updateMatrixWorld();
 
-        const trimmed = evaluator.evaluate(engraveBrush, maskBrush, SUBTRACTION);
+            // Wrap CSG operation in try-catch in case of complex geometry failure
+            try {
+                const trimmed = evaluator.evaluate(engraveBrush, maskBrush, SUBTRACTION);
+                engraveBrush.geometry.dispose();
+                maskBrush.geometry.dispose();
+                trimmed.updateMatrixWorld();
+                engraveBrush = trimmed;
+            } catch (err) {
+                console.warn("Mask subtraction failed, proceeding with original engrave shapes", err);
+                // Fallback: Skip mask subtraction if it crashes
+                maskBrush.geometry.dispose();
+            }
+        }
+
+        if (!engraveBrush.geometry?.attributes?.position?.count) {
+            engraveBrush.geometry?.dispose?.();
+            return { chocolateGeometry: baseGeometry };
+        }
+
+        const baseBrush = new Brush(baseGeometry);
+        baseBrush.updateMatrixWorld();
+
+        let carved;
+        try {
+            carved = evaluator.evaluate(baseBrush, engraveBrush, SUBTRACTION);
+        } catch (err) {
+            console.error("Base carving failed", err);
+            // Return just the base if carving fails
+            baseBrush.geometry.dispose();
+            engraveBrush.geometry.dispose();
+            return { chocolateGeometry: baseGeometry };
+        }
+
+        baseBrush.geometry.dispose();
         engraveBrush.geometry.dispose();
-        maskBrush.geometry.dispose();
-        trimmed.updateMatrixWorld();
-        engraveBrush = trimmed;
-    }
 
-    if (!engraveBrush.geometry?.attributes?.position?.count) {
-        engraveBrush.geometry?.dispose?.();
+        return {
+            chocolateGeometry: carved.geometry,
+        };
+    } catch (error) {
+        console.error("Critical error in geometry generation:", error);
         return { chocolateGeometry: baseGeometry };
     }
-
-    const baseBrush = new Brush(baseGeometry);
-    baseBrush.updateMatrixWorld();
-    const carved = evaluator.evaluate(baseBrush, engraveBrush, SUBTRACTION);
-
-    baseBrush.geometry.dispose();
-    engraveBrush.geometry.dispose();
-
-    return {
-        chocolateGeometry: carved.geometry,
-    };
 };
 
 const ChocolateModel = forwardRef(({ patternShapes, depth }, ref) => {

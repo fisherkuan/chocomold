@@ -13,6 +13,15 @@ function App() {
   const handleSVGUpload = async (file) => {
     try {
       const parsedShapes = await parseSVG(file);
+
+      // Stability check: Prevent crashing with too many shapes
+      const totalShapes = (parsedShapes.engraveShapes?.length || 0) + (parsedShapes.maskShapes?.length || 0);
+      if (totalShapes > 350) {
+        if (!window.confirm(`This SVG is very complex (${totalShapes} shapes) and might crash the 3D generation. Do you want to try anyway?`)) {
+          return;
+        }
+      }
+
       setPatternShapes(parsedShapes);
     } catch (error) {
       console.error("Error parsing SVG:", error);
@@ -20,17 +29,7 @@ function App() {
     }
   }
 
-  const handleLoadDemo = async () => {
-    console.log("App: handleLoadDemo called - Testing SVG Parsing");
 
-    // Simple RECTANGLE SVG
-    const demoSVG = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <rect x="25" y="25" width="50" height="50" fill="black" />
-    </svg>`;
-
-    const blob = new Blob([demoSVG], { type: 'image/svg+xml' });
-    await handleSVGUpload(blob);
-  };
 
   const handleExport = () => {
     if (modelRef.current) {
@@ -54,7 +53,6 @@ function App() {
       />
       <Interface
         onUpload={handleSVGUpload}
-        onLoadDemo={handleLoadDemo}
         depth={depth}
         setDepth={setDepth}
         onExport={handleExport}

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Upload, Download } from 'lucide-react';
 
 const Interface = ({ onUpload, onLoadDemo, depth, setDepth, onExport }) => {
@@ -11,6 +11,30 @@ const Interface = ({ onUpload, onLoadDemo, depth, setDepth, onExport }) => {
         }
     };
 
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === 'image/svg+xml') {
+            onUpload(file);
+        } else {
+            // Optional: Alert if not an SVG
+            console.log("Dropped file is not SVG");
+        }
+    };
+
     return (
         <div className="ui-overlay">
             <div className="ui-header">
@@ -19,14 +43,25 @@ const Interface = ({ onUpload, onLoadDemo, depth, setDepth, onExport }) => {
 
             <div className="ui-controls">
                 <div className="control-group">
+                    <div className="info-display">
+                        <label>Base Size: 10 x 10 units</label>
+                    </div>
+                </div>
+
+                <div
+                    className={`control-group upload-zone ${isDragging ? 'drag-active' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                >
                     <label>Upload Pattern (SVG)</label>
                     <div className="file-input-simple">
-                        <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Upload Pattern (SVG): </label>
-                        <input type="file" accept=".svg" onChange={handleFileChange} />
+                        <input type="file" accept=".svg" onChange={handleFileChange} id="file-upload" style={{ display: 'none' }} />
+                        <label htmlFor="file-upload" className="custom-file-upload">
+                            <Upload size={16} style={{ marginRight: '8px' }} />
+                            Choose File or Drag Here
+                        </label>
                     </div>
-                    <button style={{ marginTop: '0.5rem', fontSize: '0.8rem', background: '#795548' }} onClick={onLoadDemo}>
-                        Load Demo Star
-                    </button>
                 </div>
 
                 <div className="control-group">

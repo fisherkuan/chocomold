@@ -6,7 +6,7 @@ const ChocolateScene = ({ patternShapes, depth, modelRef }) => {
     return (
         <Canvas
             shadows
-            camera={{ position: [8, 8, 8], fov: 45 }}
+            camera={{ position: [12, 12, 12], fov: 45 }}
             style={{ background: '#fce4ec' }}
         >
             <ambientLight intensity={0.4} />
